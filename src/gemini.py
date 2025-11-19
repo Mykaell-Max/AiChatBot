@@ -1,11 +1,34 @@
-import os
+import logging
+from typing import Optional
 import google.generativeai as genai
-from dotenv import load_dotenv
+
+from config import Config
 from promptConfig import initial_context
 
-load_dotenv()
-API_KEY = os.getenv('GOOGLE')
+logger = logging.getLogger(__name__)
 
-genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
-chat = model.start_chat(history=initial_context)
+class GeminiService:
+    def __init__(self, api_key: str = Config.GOOGLE_API_KEY, model_name: str = Config.GEMINI_MODEL):
+        self.api_key = api_key
+        self.model_name = model_name
+        self._configure_api()
+        self.model = genai.GenerativeModel(self.model_name)
+        self.chat = self.model.start_chat(history=initial_context)
+        logger.info(f"Gemini service started with model {self.model_name}")
+
+    def _configure_api(self) -> None:
+        genai.configure(api_key=self.api_key)
+
+    def get_chat(self):
+        return self.chat
+
+    def send_message(self, message: str) -> Optional[str]:
+        try:
+            response = self.chat.send_message(message)
+            return response.text
+        except Exception as e:
+            logger.error(f"Error sending message to Gemini: {e}")
+            return None
+
+_gemini_service = GeminiService()
+chat = _gemini_service.get_chat()
